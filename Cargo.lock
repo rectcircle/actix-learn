@@ -85,8 +85,10 @@ dependencies = [
 name = "actix-learn"
 version = "0.1.0"
 dependencies = [
+ "actix-http",
  "actix-rt",
  "actix-web",
+ "failure",
  "futures",
  "serde",
  "serde_json",

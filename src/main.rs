@@ -1,4 +1,4 @@
-use actix_web::{error, web, App, FromRequest, HttpResponse, HttpServer, Responder, Error, HttpRequest, Either};
+use actix_web::{error, web, http, App, FromRequest, HttpResponse, HttpServer, Responder, Error, HttpRequest, Either, Result};
 
 // curl http://localhost:8088/
 // curl http://localhost:8088/app/index.html
@@ -224,6 +224,61 @@ async fn extractor_form(form: web::Form<FormData>) -> String {
     format!("{:?}", form)
 }
 
+use failure::Fail;
+
+#[derive(Fail, Debug)]
+#[fail(display = "my error")]
+struct MyError {
+    name: &'static str,
+}
+
+impl error::ResponseError for MyError {}
+
+// curl -i http://localhost:8088/error/custom
+async fn error_custom() -> Result<&'static str, MyError> {
+    Err(MyError { name: "test" })
+}
+
+#[derive(Fail, Debug)]
+#[allow(dead_code)]
+enum MyErrorEnum {
+    #[fail(display = "internal error")]
+    InternalError,
+    #[fail(display = "bad request")]
+    BadClientData,
+    #[fail(display = "timeout")]
+    Timeout,
+}
+
+use actix_http::ResponseBuilder;
+
+impl error::ResponseError for MyErrorEnum {
+    fn error_response(&self) -> HttpResponse {
+        ResponseBuilder::new(self.status_code())
+            .set_header(http::header::CONTENT_TYPE, "text/html; charset=utf-8")
+            .body(self.to_string())
+    }
+
+    fn status_code(&self) -> http::StatusCode {
+        match *self {
+            MyErrorEnum::InternalError => http::StatusCode::INTERNAL_SERVER_ERROR,
+            MyErrorEnum::BadClientData => http::StatusCode::BAD_REQUEST,
+            MyErrorEnum::Timeout => http::StatusCode::GATEWAY_TIMEOUT,
+        }
+    }
+}
+// curl -i http://localhost:8088/error/enum
+async fn error_enum() -> Result<&'static str, MyErrorEnum> {
+    Err(MyErrorEnum::BadClientData)
+}
+
+// curl -i http://localhost:8088/error/helper
+async fn error_helper() -> Result<&'static str> {
+    let result: Result<&'static str, MyError> = Err(MyError { name: "test error" });
+
+    Ok(result.map_err(|e| error::ErrorBadRequest(e.name))?)
+}
+
 #[actix_rt::main]
 async fn main() -> std::io::Result<()> {
 
@@ -285,6 +340,12 @@ async fn main() -> std::io::Result<()> {
                     .route("/query", web::get().to(extractor_query))
                     .route("/json", web::post().to(extractor_json))
                     .route("/form", web::post().to(extractor_form))
+            )
+            .service(
+                web::scope("/error")
+                    .route("/custom", web::get().to(error_custom))
+                    .route("/enum", web::get().to(error_enum))
+                    .route("/helper", web::get().to(error_helper))
             )
     })
     .bind("127.0.0.1:8088")?
