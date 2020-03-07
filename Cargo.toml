@@ -1,7 +1,7 @@
 [package]
 name = "actix-learn"
 version = "0.1.0"
-authors = ["sunben <sunben.96@bytedance.com>"]
+authors = ["rectcircle <rectcircle96@bytedance.com>"]
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -14,3 +14,15 @@ serde_json = "1.0"
 futures = "0.3"
 failure = "0.1"
 actix-http = "1.0"
+actix-service = "1.0"
+env_logger = "0.7"
+actix-session = "0.3"
+actix-files = "0.2"
+actix = "0.9"
+actix-web-actors = "2.0"
+listenfd = "0.3"
+# 数据库
+diesel = { version = "1.4", features = ["mysql", "r2d2", "chrono"] }
+dotenv = "0.15.0"
+# 时间日期
+chrono = "0.4"
